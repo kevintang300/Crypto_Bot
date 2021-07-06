@@ -9,9 +9,9 @@ averages to detect upward/downward trends for a the desired cryptocurrency.
 Python
 
 
-
-
-
+##Technical Anaylsis for Detecting Trends
+![](images/ADAUSD_EMA_FullView.png)
+![](images/ADAUSD_EMA_ZoomedView.png)
 
 
 
