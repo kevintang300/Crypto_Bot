@@ -21,6 +21,7 @@ class CryptoTrader:
 
         self.__api_key
         self.__secret_key
+        self.__accountBalance = None
 
         self.client = self.cr_client()
         self.currentPrice = -1
@@ -29,6 +30,9 @@ class CryptoTrader:
 
         self.__period = None
         self.__smoothingFactor = None
+        self.__fibRatios = [0, 0.236, 0.382, 0.50, 0.618, 0.786, 1]
+        self.__fibExtensions = [1.382, 1.50, 1.618, 1.78]
+
 
     def today_date(self):
         today = date.today()
@@ -93,11 +97,6 @@ class CryptoTrader:
         else:
             return 0
 
-
-    def begin_trading(self):
-        self.__smoothingFactor = 2/(self.__period+1)
-    
-    
     def get_resistance_support(self, klineData):
 
         closingPrices = []
@@ -117,21 +116,33 @@ class CryptoTrader:
             downtrendRatio = resistance - currentPrice
             return (downtrendRatio/ratioOne)
         
+    def init_buy(self, resistance, support, currentPrice):
+        
+        buyAmount = .10 * self.__accountBalance
+        self.__accountBalance  = self.__accountBalance - buyAmount
+
+
+
     def begin_trading(self):
 
         print("Trading Algorithm Beta_V1")
         print("Created by Kevin Tang")
         print("Date Created: June 10th, 2021\n\n")
 
-
-
         #Initializing Client
-        self.__api_key = input("API KEY: ")
-        self.__secret_key = input("Secret KEY: ")
+        #self.__api_key = input("API KEY: ")
+        #self.__secret_key = input("Secret KEY: ")
         self.client = Client(tld='us') #pass in keys in param
 
         #Initializing Smoothing Factor for EMA calculation
-        self.__period = int( input("Period:") )
+        self.__period = 7 #Temp, CHANGE TO USER INPUT NEXT PUSH
+
+        print("Currently supporting a 7 day period only.")
+        print("Not requesting API key during beta version.")
+
+
+        print("\n\nTrading ADAUSD")
+        print("---------------")
         self.__smoothingFactor = 2/(self.__period+1)
 
         analysisCount = 0
@@ -139,13 +150,14 @@ class CryptoTrader:
         sellCount = 0
         waitCount = 0
 
+        #Only analyze market 360 times.
         while analysisCount < 360:
             print("Gathering Historical KLine Data...")
-            klineData = self.client.get_historical_klines('ADAUSD', self.client.KLINE_INTERVAL_1MINUTE, "7 day ago UTC")
+            klineData = self.client.get_historical_klines('ADAUSD', self.client.KLINE_INTERVAL_1MINUTE, str(self.__period) + " day ago UTC")
             initialEMA = self.get_initial_ema(klineData)
             EMA = self.calculate_ema(klineData, initialEMA) 
 
-            trend = self.detect_trend(klineData, EMA)
+            trend = self.detect_trend(klineData, EMA) 
 
 
             resistanceLevel, supportLevel = self.get_resistance_support(klineData)
@@ -169,10 +181,7 @@ class CryptoTrader:
             
             if ratio > 0.50 and ratio < 0.62 and trend == 1:
                 buyCount = buyCount + 1
-            elif ratio > 0.50 and ratio < 0.62 and trend == -1:
-                sellCount = sellCount + 1
-            else:
-                waitCount = waitCount + 1
+    
 
             print("\n\nPreparing for next trade...")
             analysisCount = analysisCount + 1
@@ -183,18 +192,11 @@ class CryptoTrader:
         print("Sell Count: ", sellCount)
         print("Wait Count: ", waitCount)
 
-      
-            #self.graph(EMA, klineData, 'ADAUSD')
+        #Plots the EMA graph
+        #self.graph(EMA, klineData, 'ADAUSD')
 
 
         
-
-
-        
-
- 
-
-
 
 c = CryptoTrader()
 c.begin_trading()
