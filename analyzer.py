@@ -1,97 +1,89 @@
 from ema import EMA
 from binance_api import BinanceAPI
 from trader import Trader
-import matplotlib.pyplot as plt
+from graph import Graph
 import time
 
 
+from binance import Client, BinanceSocketManager
+
 class CryptocurrencyAnalyzer:
     
-    def __init__(self, period, symbol, trading_time):
+    def __init__(self):
 
-        self.period = period
-        self.symbol = symbol
-        self.trading_length = trading_time
+        self.period_one = None
+        self.period_two = None
+        self.interval = None
+
+        self.symbol = None
+        self.trading_length = None
 
     def __gather_input(self):
         
         self.period = input("How many days back would you like to analyze: ")
-
         self.symbol = input("What type of currency are you trying to trade: ")
 
-        self.trading_length = input("How long would you like to trade for in minutes: ")
-        self.trading_length = int(self.trading_length) * 60
 
-    def trend_detection(self, cur_price, cur_ema):
+
+    def __choose_analysis_type(self):
+
+        option_chosen = input("1. Detecting Trend with Exponential Moving Average\n2. Fibonacci Retracement\n")
+        return option_chosen
+
+
+    def __trend_detection(self, cur_price, cur_ema):
         
         if cur_price >= cur_ema:
-            print("Uptrend for", self.symbol)
+            
+            cur_ema =  "{:.2f}".format(cur_ema)
+            cur_price = "{:2f}".format(cur_price)
+            print("\n\nCurrent Price of", self.symbol, "is " + str(cur_price))
+            print("The most recent exponential moving average is at " + str(cur_ema))
+            print("There is currently an uptrend for " + self.symbol, "over a " + str(self.period) + " day period")
+            
         else:
             print("Downtrend for", self.symbol)
 
-    def graph_ema(self, closing_prices, ema_array):
+    def __ema_analysis(self, market, client):
+        
+        #KLINE chart for given symbol and period time range.
+        market.get_chart( int(self.period), self.symbol, client)
 
-        #Plot the closing prices on the graph
-        x = []
-        y = []
-        for i in range(len(closing_prices)):
-            x.append(i)
-            y.append( float(closing_prices[i]) )
+        #EMA object will help initalize ema elements.
+        ema = EMA(market.closing_prices, int(self.period))
+        ema.initalize_starting_ema()
 
-        plt.plot(x,y, label="Closing Prices")
+         #Current price is required for trend analysis.
+        current_price =  float(client.get_symbol_ticker(symbol=self.symbol)['price'])
+        self.__trend_detection(current_price, ema.ema_calculations[-1])
 
-
-        #Now graph the moving averages on the graph
-        x2 = []
-        y2 = []
-        for i in range(len(ema_array)):
-            x2.append(i)
-            y2.append(ema_array[i])
-
-
-        plt.plot(x2,y2,label="EMA")
-        plt.title(self.symbol + " Trend Analysis")
-        plt.legend()
-        plt.show()
-        plt.close()
+        #Visual Graph 
+        g = Graph()
+        g.graph_ema(market.closing_prices, ema.ema_calculations)
+        
 
 
 
     def run(self, trader=None):
 
-        #self.__gather_input()
-        market = BinanceAPI('ADAUSD', self.period)
-        market.connect_to_client()
-
-        #Gather historical kline data's to initalize EMA list.
-        market.update_data()
-        ema_obj = EMA(market.closing_prices, 100)
-        ema_obj.initalize_starting_ema()
-
         #self.graph_ema(market.closing_prices, ema_obj.ema_calculations) 
-
-        
-
-        """
-
-        #Grab the current time
-        start_time = time.time()
+        client = Client(tld="us")
+        market = BinanceAPI()
 
         while True:
+            analysis_pick = self.__choose_analysis_type()
 
-            current_time = time.time()
-            elapsed_time = current_time - start_time
+            if analysis_pick == "1":
+                self.__gather_input() #Get period and symbol
+                self.__ema_analysis(market, client)
+            elif analysis_pick == "2":
+                print("Fibonacci Retracement Chosen")
 
-            if elapsed_time > self.trading_length:
-                break
-            
-            #Every iteration we'll be grabing in new data for to help with bot decision making.
-            current_ema = ema_obj.calculate_ema(market.most_recent_closing)
-            self.trend_detection(market.current_price, current_ema)
-            #self.graph_ema(market.closing_prices, ema_obj.ema_calculations)
-        """
         
 
-trader = CryptocurrencyAnalyzer(100, "ADAUSD", 60)
+
+        
+
+trader = CryptocurrencyAnalyzer()
 trader.run()
     

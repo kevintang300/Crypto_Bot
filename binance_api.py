@@ -1,12 +1,6 @@
-from binance import Client, BinanceSocketManager
-
 class BinanceAPI:
 
-    def __init__(self, symbol, period):
-
-        self.period = period
-        self.symbol = symbol
-        self.client = None
+    def __init__(self):
 
         """
         Historical Data is a list of lists
@@ -18,6 +12,7 @@ class BinanceAPI:
         Index 5: Volume
 
         """
+
         self.__historical_data = None
         self.open_prices = None
         self.high_prices = None
@@ -30,24 +25,32 @@ class BinanceAPI:
         
         self.most_recent_closing = None
         self.current_price = None
-    
-       
-    #Obtaining a client object to further use for grabbing information/data from Binance's exchange.
-    def connect_to_client(self, api_key=None, api_secret=None):
 
-        #Client connection without user account access
-        if api_key == None or api_secret == None:
-            self.client = Client(tld='us') #Using Binance.us in the United States
-            print("Connection to Client Successful\n")
-        else:
-            self.client = Client(api_key, api_secret, tld='us')
-            print("Connection to Client/Account Successful\n")
+    """
+
+    KLINE_INTERVAL_1MINUTE = '1m'
+    KLINE_INTERVAL_3MINUTE = '3m'
+    KLINE_INTERVAL_5MINUTE = '5m'
+    KLINE_INTERVAL_15MINUTE = '15m'
+    KLINE_INTERVAL_30MINUTE = '30m'
+    KLINE_INTERVAL_1HOUR = '1h'
+    KLINE_INTERVAL_2HOUR = '2h'
+    KLINE_INTERVAL_4HOUR = '4h'
+    KLINE_INTERVAL_6HOUR = '6h'
+    KLINE_INTERVAL_8HOUR = '8h'
+    KLINE_INTERVAL_12HOUR = '12h'
+    KLINE_INTERVAL_1DAY = '1d'
+    KLINE_INTERVAL_3DAY = '3d'
+    KLINE_INTERVAL_1WEEK = '1w'
+    KLINE_INTERVAL_1MONTH = '1M'
+
+    """
 
     #Use client object to gather information on historical and current numbers of the market.
-    def update_data(self):
+    def get_chart(self, period, symbol, client):
 
-        if self.client != None:
-            self.__historical_data = self.client.get_historical_klines(self.symbol, self.client.KLINE_INTERVAL_1DAY, str(self.period) + " day ago UTC")
+        if client != None:
+            self.__historical_data = client.get_historical_klines(symbol, client.KLINE_INTERVAL_15MINUTE, str(period) + " day ago UTC")
 
             self.open_prices = [open_price[1] for open_price in self.__historical_data]
             self.high_prices = [high_price[2] for high_price in self.__historical_data]
@@ -59,7 +62,12 @@ class BinanceAPI:
             self.resistance = max(self.high_prices)
 
             self.most_recent_closing = self.closing_prices[-1]
-            self.current_price = float(self.client.get_symbol_ticker(symbol=self.symbol)['price'])
+            self.current_price = float(client.get_symbol_ticker(symbol=symbol)['price'])
+
+    def get_closing_prices(self):
+        return self.closing_prices
+        
+
 
     """
     Print
@@ -73,6 +81,8 @@ class BinanceAPI:
     OHLCV
 
     """
+
+
     def printOHLCV(self):
         
         print("Opening:", self.open_prices, "\n")
